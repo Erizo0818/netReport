@@ -70,7 +70,21 @@
 
 #### UI设计
 
+##### UI框架
+
+![image-20230521205335473](./assets/image-20230521205335473.png)
+
+登录界面
+
+用户界面
+
+
+
+
+
 #### 框架结构
+
+![image-20230521211003661](./assets/image-20230521211003661.png)
 
 ##### 应用程报文以及socket封装
 
@@ -78,25 +92,27 @@
 
 表示聊天室中的消息，具有以下几个成员变量：
 
-l length：消息长度，占用两个字节。
+- length：消息长度，占用两个字节。
 
-l op_code：操作代码，占用一个字节，表示消息的类型（登录、退出、聊天、文件传输等）。
+- op_code：操作代码，占用一个字节，表示消息的类型（登录、退出、聊天、文件传输等）。
 
-l sender：发送者 ID，占用四个字节。
+- sender：发送者 ID，占用四个字节。
 
-l receiver：接收者 ID，占用四个字节。
+- receiver：接收者 ID，占用四个字节。
 
-l data：消息内容，长度为 length-11。
+- data：消息内容，长度为 length-11。
+
 
 成员函数包括：
 
-l 默认构造函数，在对象创建时初始化成员变量为 0。
+- 默认构造函数，在对象创建时初始化成员变量为 0。
 
-l 带参数的构造函数，用于设置成员变量的值。
+- 带参数的构造函数，用于设置成员变量的值。
 
-l get_length、get_sender、get_receiver、get_data 和 get_op_code，用于获取相应的成员变量。
+- get_length、get_sender、get_receiver、get_data 和 get_op_code，用于获取相应的成员变量。
 
-l unmarshal 和 marshal，用于将消息网络传输格式、内存格式相互装换
+- unmarshal 和 marshal，用于将消息网络传输格式、内存格式相互装换
+
 
  
 
@@ -104,55 +120,60 @@ l unmarshal 和 marshal，用于将消息网络传输格式、内存格式相互
 
 CRP 类表示一个用于网络通信的封装类。具有以下几个成员变量：
 
-l fd：套接字文件描述符。
+- fd：套接字文件描述符。
 
-l recv_buf：接收缓冲区。
+- recv_buf：接收缓冲区。
 
-l send_buf：发送缓冲区。
+- send_buf：发送缓冲区。
 
-l recv_pointer：接收缓冲区中未解析数据的长度。
+- recv_pointer：接收缓冲区中未解析数据的长度。
 
-l send_pointer：发送缓冲区中未发送数据的长度。
+- send_pointer：发送缓冲区中未发送数据的长度。
+
 
 成员函数包括：
 
-l 构造函数，用于初始化成员变量。
+构造函数，用于初始化成员变量。
 
-l receive，用于接收 CRPMessage。它首先调用 recv 函数从网络中接收数据，然后通过 unmarshal 方法将数据解析为 CRPMessage。接收到的消息可能不完整，因此需要在接收到足够多的字节之后才能解析消息。最后，将未解析的数据移动到缓冲区的开头。
+- receive，用于接收 CRPMessage。它首先调用 recv 函数从网络中接收数据，然后通过 unmarshal 方法将数据解析为 CRPMessage。接收到的消息可能不完整，因此需要在接收到足够多的字节之后才能解析消息。最后，将未解析的数据移动到缓冲区的开头。
 
-l send，用于发送 CRPMessage。该方法将 CRPMessage 序列化到一个缓冲区，并通过 send 函数将数据发送到网络中。这个方法同样会保存未发送的数据，以便下一次发送使用。
+- send，用于发送 CRPMessage。该方法将 CRPMessage 序列化到一个缓冲区，并通过 send 函数将数据发送到网络中。这个方法同样会保存未发送的数据，以便下一次发送使用。
 
-l close，用于关闭套接字连接。
+- close，用于关闭套接字连接。
 
-l get_fd 和 set_fd，用于获取和设置套接字文件描述符。
+- get_fd 和 set_fd，用于获取和设置套接字文件描述符。
 
-l get_send_pointer，用于获取发送缓冲区中未发送数据的长度。
+- get_send_pointer，用于获取发送缓冲区中未发送数据的长度。
+
 
 (3) SocketStream类
 
 SocketStream 类是TCP 套接字流的封装类，具有以下几个成员函数：
 
-l 默认构造函数，创建一个套接字文件描述符，并初始化地址结构。
+- 默认构造函数，创建一个套接字文件描述符，并初始化地址结构。
 
-l close，用于关闭套接字连接。
+- close，用于关闭套接字连接。
 
-l get_sock_fd，用于获取套接字文件描述符。
+- get_sock_fd，用于获取套接字文件描述符。
+
 
 （4）SocketStreamHost 类
 
 SocketStreamHost是TCP 服务器端的封装类，它继承自 SocketStream 类，并添加了以下成员函数：	
 
-l 构造函数，初始化地址结构。
+- 构造函数，初始化地址结构。
 
-l host，将套接字与地址绑定并开始监听连接请求。
+- host，将套接字与地址绑定并开始监听连接请求。
 
-l accept，等待客户端连接并接受连接请求，返回一个新的套接字文件描述符。
+- accept，等待客户端连接并接受连接请求，返回一个新的套接字文件描述符。
+
 
 （5）SocketStreamClient 类是TCP 客户端的封装类，也继承自 SocketStream 	类，并添加了以下成员函数：
 
-l 构造函数，初始化地址结构。
+- 构造函数，初始化地址结构。
 
-l connect，连接服务器端并返回连接状态。
+- connect，连接服务器端并返回连接状态。
+
 
  
 
@@ -160,13 +181,17 @@ l connect，连接服务器端并返回连接状态。
 
 (1) 。。。。
 
+
+
 ##### 服务端框架
+
+![image-20230521204503549](./assets/image-20230521204503549.png)
 
 (1) 。。。。
 
- 
 
- 
+
+  
 
 ## 关键代码的描述
 

@@ -151,7 +151,9 @@
 
 ###### GUI
 
+GUI使用`Electron`编写，他由一个`Javascript`运行时`Node.js`和一个`Chromium`渲染引擎组成。其中我们使用`Chromium`引擎和`Vue`框架编写GUI。
 
+然后使用`Node.js`生成`Chatroom`子进程，并将**两个进程通过管道连接起来**，`Electron`只负责渲染UI。
 
 ##### 服务端框架
 

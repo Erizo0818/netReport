@@ -1,10 +1,10 @@
-# ***\实 验 报 告\***
+# **实 验 报 告**
 
-| 组号： | 1-1  |        |      |        |      |
-| ------ | ---- | ------ | ---- | ------ | ---- |
-| 姓名： |      | 学号： |      | 班级： |      |
-| 姓名： |      | 学号： |      | 班级： |      |
-|        |      |        |      |        |      |
+|              |      |         学生信息 |      |                 |           |
+| ------------ | ---- | ---------------: | ---- | --------------- | --------- |
+| 姓名：刘玉安 |      | 学号：2206213277 |      | 班级：计算机002 | 组号：4-7 |
+| 姓名：辛洲   |      | 学号：2205012195 |      | 班级：计算机004 | 组号：    |
+|              |      |                  |      |                 |           |
 
 ## 实验名称
 
@@ -32,17 +32,18 @@
 
 ### 基本功能
 
-#### 验证用户登录 
+1. 验证用户登录 
 
-用户通过账户以及密码进行登录操作，若密码错误服务器不允许该用户登录。 
+    用户通过账户以及密码进行登录操作，若密码错误服务器不允许该用户登录。 
 
-#### 用户之间的文字聊天 
+2. 用户之间的文字聊天 
 
-用户之间可以进行文字聊天，且实时性较好，支持中英文。
+    用户之间可以进行文字聊天，且实时性较好，支持中英文。
 
-#### 用户之间的文件传输
+3. 用户之间的文件传输
 
-用户之间可以进行文件传输，文件传输准率高。
+    用户之间可以进行文件传输，文件传输准率高。
+
 
 ### 高级功能
 
@@ -55,7 +56,15 @@
 
 
 
+辛洲：
 
+- xxx
+- xxx
+
+刘玉安：
+
+- Xxx
+- 
 
 #### 协议设计
 
@@ -117,7 +126,6 @@
 
 #### UI设计
 
-##### UI框架
 
 ![image-20230521205335473](./assets/image-20230521205335473.png)
 
@@ -226,15 +234,11 @@ SocketStreamHost是TCP 服务器端的封装类，它继承自 SocketStream 类�
 
 ##### 客户端框架
 
-(1) 。。。。
-
-
+![image-20230521211434567](./assets/image-20230521211434567.png)
 
 ##### 服务端框架
 
 ![image-20230521204503549](./assets/image-20230521204503549.png)
-
-(1) 。。。。
 
 
 
@@ -246,11 +250,173 @@ SocketStreamHost是TCP 服务器端的封装类，它继承自 SocketStream 类�
 
  
 
-### 关键代码1……。
+### 协议 
 
- 
+```cpp
+//crp.hpp  
+//CRP消息的定义，包含消息消息长度、操作码、发送方id,接收方id
+class CRPMessage{
+private:
+    // head
+    uint16_t length;	
+    uint8_t op_code;
+    uint32_t sender;
+    uint32_t receiver;
+    uint8_t data[4096 - 11]; //11 = length + op_code + sender + server
 
-### 关键代码2……。
+public:
+    CRPMessage();
+    CRPMessage(uint16_t length, uint8_t op_code, uint32_t sender,
+             uint32_t receiver, char const *data);
+
+    void DEBUG();
+    int marshal(char*,int);//message写入网络 
+    int unmarshal(char const *, int);//从网络还原message
+    uint16_t get_length();
+    uint32_t get_sender() const;
+    uint32_t get_receiver() const;
+    const uint8_t *get_data() const;
+    uint8_t get_op_code() const;
+    static int peek_length(char const *buf) { return ntohs(*(uint16_t *)buf);
+}
+};
+
+//下面是CRPMessage的具体实现
+// 默认构造函数
+CRPMessage::CRPMessage() { memset(this, 0, sizeof(CRPMessage)); }
+
+// 构造函数，接收参数：消息长度、操作码、发送者、接收者、消息数据
+CRPMessage::CRPMessage(uint16_t length, uint8_t op_code, uint32_t sender,
+                       uint32_t receiver, char const *data)
+    : length(length), op_code(op_code), sender(sender), receiver(receiver) {
+  // 拷贝消息数据到相应的成员变量中
+  memcpy(this->data, data, length - 11);
+}
+
+// 返回消息长度
+uint16_t CRPMessage::get_length() { return length; }
+
+// 返回发送者
+uint32_t CRPMessage::get_sender() const { return sender; }
+
+// 返回接收者
+uint32_t CRPMessage::get_receiver() const { return receiver; }
+
+// 返回消息数据
+const uint8_t *CRPMessage::get_data() const { return data; }
+
+// 返回操作码
+uint8_t CRPMessage::get_op_code() const { return op_code; }
+
+// 解包函数，接收缓冲区、缓冲区大小作为参数
+int CRPMessage::unmarshal(const char *buf, int buflen) {
+  // 取出消息长度
+  length = ntohs(*((uint16_t *)buf));
+  std::cout << "unmarshal length: " << length << std::endl;
+  // 如果缓冲区的数据长度小于消息长度，返回负数
+  if (buflen < length) {
+    return -length;
+  } else {
+    // 依次取出操作码、发送者、接收者、消息数据
+    op_code = buf[2];
+    sender = ntohl(*(uint32_t *)(buf + 3));
+    receiver = ntohl(*(uint32_t *)(buf + 7));
+    memcpy(data, buf + 11, length - 11);
+  }
+  // 返回消息长度
+  return length;
+}
+
+// 打包函数，接收缓冲区、缓冲区大小作为参数
+int CRPMessage::marshal(char *buf, int buflen) {
+  // 如果消息长度大于缓冲区大小，返回 0
+  if (length > buflen) {
+    return 0;
+  }
+  // 将消息长度、操作码、发送者、接收者写入缓冲区，然后写入消息数据
+  *((uint16_t *)buf) = htons(length);
+  *((uint8_t *)(buf + 2)) = op_code;
+  *((uint32_t *)(buf + 3)) = htonl(sender);
+  *((uint32_t *)(buf + 7)) = htonl(receiver);
+  memcpy(buf + 11, data, length - 11);
+
+  // 返回写入的数据长度
+  return length;
+}
+
+// 输出消息对象内容
+void CRPMessage::DEBUG() {
+  printf("{\n\tlength: %d\n\top_code: %d\n\tsender: %d\n\treceiver: "
+         "%d\n\tdata: %s\n}\n",
+         length, (int)op_code, sender, receiver, data);
+}
+
+//---------------------CRP-------------------
+
+// 构造函数，接收一个文件描述符作为参数
+CRP::CRP(int fd) : fd(fd), recv_pointer(0), send_pointer(0) {}
+
+// 接收消息函数，接收一个 CRPMessage 对象作为参数
+int CRP::receive(CRPMessage *message) {
+  // 接收数据// crp.hpp: 定义了 CRPMessage 和 CRP 两个类
+
+#include <_types/_uint8_t.h> // C++ STL 头文件，定义了 uint8_t
+#include "stdint-gcc.h"     // C++ STL 头文件，定义了 uint16_t, uint32_t
+
+namespace chatroom {
+namespace net {
+//---------------------CRPMessage-------------------
+
+// 定义消息类 CRPMessage
+class CRPMessage {
+public:
+  CRPMessage(); // 默认构造函数
+
+  // 带参数的构造函数，初始化消息的各个属性
+  CRPMessage(uint16_t length, uint8_t op_code, uint32_t sender,
+             uint32_t receiver, char const *data);
+
+  // 获取消息长度
+  uint16_t get_length();
+
+  // 获取消息的发送者 ID
+  uint32_t get_sender() const;
+
+  // 获取消息的接收者 ID
+  uint32_t get_receiver() const;
+
+  // 获取消息的数据
+  const uint8_t *get_data() const;
+
+  // 获取消息的操作码
+  uint8_t get_op_code() const;
+
+  // 反序列化一个消息
+  int unmarshal(const char *buf, int buflen);
+
+  // 序列化一个消息
+  int marshal(char *buf, int buflen);
+
+  // 调试用函数，打印消息的各个属性
+  void DEBUG();
+
+private:
+  uint16_t length;   // 消息长度
+  uint8_t op_code;   // 操作码
+  uint32_t sender;   // 发送者 ID
+  uint32_t receiver; // 接收者 ID 
+  uint8_t data[4096 - 11]; // 消息数据，注意长度不能超过 4096 - 11
+};
+
+```
+
+
+
+### 客户端
+
+
+
+### 服务端
 
  
 
@@ -274,7 +440,8 @@ SocketStreamHost是TCP 服务器端的封装类，它继承自 SocketStream 类�
 
 ## 实验结论
 
- 
+1.  本次实验完成了实验的基本要求，并实现了部分高级要求，其中文件传输功能支持传输大文件，并有很高的准确率。消息发送以及文件传输的效率都比较高。
+2. 
 
 ## 总结及心得体会 
 
